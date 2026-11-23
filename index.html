@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>領峰 POS 樣辦</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: 收銀機橫屏 — 頂部導航 + 左邊單據／右邊操作區，兩欄各自捲動；窄屏疊成一欄 */
+:root{
+  --bg:#EEF2EE; --surface:#FFFFFF; --surface-2:#E4EAE5; --ink:#15201A; --muted:#5A6A60; --line:#D2DBD4;
+  --accent:#0D6A4E; --accent-ink:#FFFFFF; --accent-soft:#D8EEE3;
+  --warn:#A9530A; --warn-soft:#FCE9D2; --danger:#B42318; --danger-soft:#FBE0DC; --ok:#17803D; --ok-soft:#DCF3E2;
+  --total-bg:#0F2A1F; --total-fg:#E6FFF2; --total-num:#7CF0B9;
+  --swatch-ink:#18201B;
+  --f-body:"Noto Sans TC","PingFang HK","Microsoft JhengHei",system-ui,sans-serif;
+  --f-num:"Barlow Semi Condensed","Arial Narrow","Noto Sans TC",system-ui,sans-serif;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1411; --surface:#161F1A; --surface-2:#1F2A24; --ink:#E4EDE7; --muted:#97A89D; --line:#2B3932;
+  --accent:#3DBB8B; --accent-ink:#03140D; --accent-soft:#16392B;
+  --warn:#F0A04A; --warn-soft:#3A2913; --danger:#F27B6F; --danger-soft:#3D1B17; --ok:#5AD08A; --ok-soft:#173623;
+  --total-bg:#08261A; --total-fg:#D5FBE7; --total-num:#7CF0B9; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1411; --surface:#161F1A; --surface-2:#1F2A24; --ink:#E4EDE7; --muted:#97A89D; --line:#2B3932;
+  --accent:#3DBB8B; --accent-ink:#03140D; --accent-soft:#16392B;
+  --warn:#F0A04A; --warn-soft:#3A2913; --danger:#F27B6F; --danger-soft:#3D1B17; --ok:#5AD08A; --ok-soft:#173623;
+  --total-bg:#08261A; --total-fg:#D5FBE7; --total-num:#7CF0B9; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+input{font:inherit;color:var(--ink)}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.app{display:flex;flex-direction:column;height:100%;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px 14px;gap:10px}
+
+/* top bar */
+.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:8px;margin-right:6px}
+.brand b{font-size:19px;letter-spacing:.02em}
+.brand span{font-family:var(--f-num);font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;font-size:13px}
+.nav{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.nav button{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-weight:500;font-size:16px}
+.nav button kbd{font-family:var(--f-num);font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px}
+.nav button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.nav button.on kbd{color:var(--accent-ink);border-color:currentColor;opacity:.7}
+.nav .badge{background:var(--warn);color:#fff;border-radius:999px;font-size:12px;padding:0 7px;font-family:var(--f-num)}
+.meta{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14px}
+.demo-tag{background:var(--warn-soft);color:var(--warn);border-radius:6px;padding:3px 8px;font-weight:700;font-size:13px}
+
+.guide{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--accent-soft);border-radius:var(--r);padding:8px 14px;font-size:14px}
+.guide ol{display:flex;gap:18px;flex-wrap:wrap;margin:0;padding:0;list-style:none;flex:1}
+.guide li b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:12px;margin-right:6px}
+.guide button{color:var(--muted);text-decoration:underline}
+
+main{flex:1;min-height:0}
+.screen{height:100%;min-height:0;display:grid;gap:14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;min-height:0;min-width:0}
+.scroll{overflow:auto;min-height:0}
+h2{font-size:15px;margin:0;font-weight:700;letter-spacing:.02em}
+h3{font-size:16px;margin:0 0 10px;font-weight:700;display:flex;align-items:center;gap:8px}
+h3 .n{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-family:var(--f-num);font-size:15px}
+h3 .done{margin-left:auto;font-size:13px;color:var(--ok);font-weight:500}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+
+/* generic buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--r);padding:12px 18px;font-weight:700;font-size:16px;background:var(--surface-2);min-height:48px}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;border:1px solid var(--line)}
+.btn.big{min-height:64px;font-size:20px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-size:15px;min-height:40px}
+.chip.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.pill{display:inline-block;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:700}
+.pill.low{background:var(--danger-soft);color:var(--danger)}
+.pill.okp{background:var(--ok-soft);color:var(--ok)}
+.pill.w{background:var(--warn-soft);color:var(--warn)}
+
+/* ===== 收銀 ===== */
+.pos{grid-template-columns:minmax(360px,42%) 1fr}
+.bill-head{display:flex;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.inv-no{font-family:var(--f-num);font-weight:700;font-size:18px;letter-spacing:.04em}
+.cust-btn{margin-left:auto;display:flex;align-items:center;gap:8px;border:1px dashed var(--line);border-radius:var(--r);padding:8px 12px;min-height:44px}
+.cust-btn.has{border-style:solid;background:var(--accent-soft)}
+.lines{flex:1}
+.line{display:grid;grid-template-columns:1fr auto auto;gap:4px 12px;padding:12px 14px;border-bottom:1px solid var(--line);align-items:center}
+.line .nm{font-weight:500;min-width:0}
+.line .sub{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}
+.line .sub span{background:var(--surface-2);border-radius:6px;padding:2px 8px;font-size:13px}
+.line .amt{font-family:var(--f-num);font-weight:700;font-size:20px;text-align:right;min-width:84px}
+.line .unit{font-size:13px;color:var(--muted)}
+.line.string{background:linear-gradient(90deg,var(--accent-soft),transparent 60%)}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,.25);vertical-align:-1px;margin-right:6px}
+.stepper{display:flex;align-items:center;gap:2px;background:var(--surface-2);border-radius:999px}
+.stepper button{width:40px;height:40px;border-radius:50%;font-size:20px;font-weight:700}
+.stepper b{min-width:28px;text-align:center;font-family:var(--f-num);font-size:18px}
+.icon-btn{width:40px;height:40px;border-radius:50%;color:var(--muted);font-size:18px}
+.icon-btn:hover{background:var(--danger-soft);color:var(--danger)}
+.link{color:var(--accent);font-weight:700;font-size:14px;padding:4px 6px}
+.empty{padding:36px 20px;text-align:center;color:var(--muted);display:grid;gap:8px;place-items:center}
+.empty b{color:var(--ink);font-size:17px}
+.bill-foot{border-top:1px solid var(--line);padding:12px 14px;display:grid;gap:10px}
+.sumrow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.total{background:var(--total-bg);color:var(--total-fg);border-radius:12px;padding:10px 16px;display:flex;justify-content:space-between;align-items:baseline}
+.total .v{font-family:var(--f-num);font-weight:700;font-size:44px;color:var(--total-num);line-height:1.1}
+.foot-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:10px}
+
+.picker{padding:12px;gap:10px}
+.searchrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.search{flex:1;min-width:200px;position:relative}
+.search input{width:100%;height:54px;border-radius:12px;border:2px solid var(--line);background:var(--bg);padding:0 14px 0 44px;font-size:17px}
+.search input:focus{border-color:var(--accent);outline:none}
+.search::before{content:"⌕";position:absolute;left:14px;top:50%;transform:translateY(-52%);font-size:24px;color:var(--muted)}
+.qtymul{display:flex;align-items:center;gap:8px}
+.cats{display:flex;gap:8px;flex-wrap:wrap}
+.cats button{padding:12px 18px;border-radius:12px;background:var(--surface-2);font-weight:700;font-size:17px;min-height:52px;border-bottom:4px solid transparent}
+.cats button.on{background:var(--ink);color:var(--surface)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px;align-content:start}
+.key{min-height:86px;border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;background:var(--surface-2);border:1px solid rgba(0,0,0,.08);position:relative;transition:transform .08s}
+.key:active{transform:scale(.97)}
+.key .k1{font-weight:700;font-size:17px;line-height:1.15}
+.key .k2{font-size:13px;opacity:.8}
+.key .kp{font-family:var(--f-num);font-weight:600;font-size:16px}
+.key .tag{position:absolute;top:6px;right:6px;font-size:11px;font-weight:700;background:rgba(255,255,255,.85);color:#9B1C12;border-radius:6px;padding:0 5px}
+.key.sw{color:var(--swatch-ink)}
+.key.sel{outline:4px solid var(--ink);outline-offset:2px}
+.grid-note{grid-column:1/-1;color:var(--muted);font-size:13px;padding:4px 2px}
+
+/* ===== 穿線單 ===== */
+.strg{grid-template-columns:1fr 360px}
+.steps{display:grid;grid-template-columns:1.25fr 1fr;grid-auto-rows:min-content;gap:14px;overflow:auto;min-height:0;align-content:start}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0}
+.step.need{border-color:var(--warn)}
+.step .grid{grid-template-columns:repeat(auto-fill,minmax(104px,1fr))}
+.step .key{min-height:66px}
+.tension-big{display:flex;align-items:baseline;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.tension-big b{font-family:var(--f-num);font-size:46px;line-height:1}
+.tgrid{display:grid;grid-template-columns:repeat(9,1fr);gap:5px}
+.tgrid button{height:44px;border-radius:8px;background:var(--surface-2);font-family:var(--f-num);font-weight:600;font-size:18px}
+.tgrid button.typ{background:var(--accent-soft)}
+.tgrid button.on{background:var(--accent);color:var(--accent-ink)}
+.subrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.datechips{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.datechips button,.timechips button{border-radius:10px;background:var(--surface-2);padding:8px 6px;min-height:56px;display:grid;place-items:center;line-height:1.2}
+.datechips button small{font-size:12px;color:var(--muted)}
+.datechips button.on,.timechips button.on{background:var(--accent);color:var(--accent-ink)}
+.datechips button.on small{color:inherit}
+.timechips{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.field{display:grid;gap:4px;margin-bottom:10px}
+.field label{font-size:13px;color:var(--muted)}
+.field input{height:50px;border-radius:10px;border:2px solid var(--line);background:var(--bg);padding:0 12px;font-size:18px}
+.field input:focus{border-color:var(--accent);outline:none}
+.sug{display:grid;gap:4px;margin-bottom:10px}
+.sug button{display:flex;justify-content:space-between;padding:10px 12px;border-radius:8px;background:var(--surface-2);text-align:left}
+.check{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:10px;background:var(--surface-2);cursor:pointer}
+.check input{width:22px;height:22px;accent-color:var(--accent);margin-top:2px}
+.summary{padding:14px;gap:12px}
+.slip{border:2px dashed var(--line);border-radius:12px;padding:12px;display:grid;gap:8px;font-size:15px}
+.slip .r{display:flex;justify-content:space-between;gap:10px}
+.slip .r span:first-child{color:var(--muted)}
+.slip .r b{text-align:right}
+.missing{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:14px}
+
+/* ===== 付款 ===== */
+.pay{grid-template-columns:minmax(320px,0.9fr) 1.3fr}
+.paybill{padding:14px;gap:10px}
+.mini{display:grid;gap:6px;font-size:14px}
+.mini .r{display:flex;justify-content:space-between;gap:10px}
+.payline{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface-2);border-radius:10px}
+.payline .a{margin-left:auto;font-family:var(--f-num);font-weight:700;font-size:20px}
+.owe{border-radius:12px;padding:12px 16px;display:flex;justify-content:space-between;align-items:baseline}
+.owe.due{background:var(--warn-soft);color:var(--warn)}
+.owe.chg{background:var(--ok-soft);color:var(--ok)}
+.owe .v{font-family:var(--f-num);font-size:40px;font-weight:700;line-height:1.1}
+.paymain{padding:14px;gap:14px}
+.methods{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.methods button{min-height:64px;border-radius:12px;background:var(--surface-2);display:flex;align-items:center;gap:10px;padding:8px 12px;font-weight:700;font-size:16px;text-align:left;border:2px solid transparent}
+.methods button.on{border-color:var(--ink);background:var(--surface)}
+.methods i{width:14px;height:34px;border-radius:4px;flex:none}
+.entry{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.amtbox{border:2px solid var(--accent);border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.amtbox .v{font-family:var(--f-num);font-size:40px;font-weight:700}
+.quick{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+.quick button{min-height:54px;border-radius:10px;background:var(--surface-2);font-family:var(--f-num);font-weight:700;font-size:20px}
+.quick button.exact{grid-column:1/-1;background:var(--accent-soft);color:var(--accent);font-family:var(--f-body);font-size:16px}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.keypad button{min-height:54px;border-radius:10px;background:var(--surface-2);font-family:var(--f-num);font-weight:700;font-size:24px}
+.langtog{display:flex;border:1px solid var(--line);border-radius:999px;padding:3px}
+.langtog button{padding:8px 14px;border-radius:999px;font-weight:700}
+.langtog button.on{background:var(--ink);color:var(--surface)}
+
+/* ===== 貨品 ===== */
+.stock{grid-template-columns:1fr minmax(340px,420px)}
+.stock .panel{padding:12px;gap:10px}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{font-size:12px;color:var(--muted);text-align:left;font-weight:500;padding:8px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);letter-spacing:.04em}
+td{padding:10px 8px;border-bottom:1px solid var(--line)}
+td.r,th.r{text-align:right}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr.on{background:var(--accent-soft)}
+.tablewrap{overflow:auto;min-height:0;flex:1}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
+.dl dt{color:var(--muted)}
+.dl dd{margin:0;font-weight:500;min-width:0;overflow-wrap:anywhere}
+.prices{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.prices div{background:var(--surface-2);border-radius:10px;padding:8px;text-align:center}
+.prices div.a{background:var(--accent-soft)}
+.prices small{display:block;font-size:12px;color:var(--muted)}
+.prices b{font-family:var(--f-num);font-size:20px}
+.stockbar{height:12px;border-radius:6px;background:var(--surface-2);position:relative;overflow:hidden}
+.stockbar i{position:absolute;inset:0 auto 0 0;border-radius:6px}
+.stockbar u{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink)}
+
+/* ===== 每日結算 ===== */
+.daily{grid-template-rows:auto 1fr;grid-template-columns:1fr}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 16px}
+.kpi small{color:var(--muted);font-size:13px}
+.kpi b{display:block;font-family:var(--f-num);font-size:34px;line-height:1.15}
+.kpi.main{background:var(--total-bg);color:var(--total-fg);border-color:transparent}
+.kpi.main small{color:inherit;opacity:.75}
+.kpi.main b{color:var(--total-num)}
+.dgrid{display:grid;grid-template-columns:minmax(320px,1fr) 1.6fr;gap:14px;min-height:0}
+.dgrid .panel{padding:14px;gap:12px}
+.bars{display:grid;gap:8px}
+.bar{display:grid;grid-template-columns:96px 1fr 92px;gap:10px;align-items:center;font-size:14px}
+.bar .t{height:22px;background:var(--surface-2);border-radius:6px;overflow:hidden}
+.bar .t i{display:block;height:100%;border-radius:6px}
+.bar .v{text-align:right;font-family:var(--f-num);font-weight:600;font-size:17px}
+.board{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;min-height:0}
+.col{background:var(--surface-2);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:8px;min-height:0;min-width:0}
+.col header{display:flex;justify-content:space-between;align-items:center;font-weight:700;padding:2px 4px}
+.col header b{font-family:var(--f-num);font-size:20px}
+.card{background:var(--surface);border-radius:10px;padding:10px;display:grid;gap:4px;font-size:13px;border-left:5px solid var(--line)}
+.card .who{display:flex;justify-content:space-between;gap:6px;font-size:14px;font-weight:700}
+.card .s{display:flex;align-items:center;gap:4px;font-weight:500}
+.card .late{color:var(--danger);font-weight:700}
+.card .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.card .acts button{padding:6px 10px;border-radius:8px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:13px}
+.card .acts button.sec{background:var(--surface-2);color:var(--ink)}
+.cash{display:grid;gap:8px;font-size:15px}
+.cash .r{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.cash input{width:130px;height:44px;border-radius:8px;border:2px solid var(--line);background:var(--bg);text-align:right;padding:0 10px;font-family:var(--f-num);font-size:20px}
+
+/* modal + toast */
+.modal{position:fixed;inset:0;background:rgba(8,16,12,.55);display:grid;place-items:center;padding:20px max(16px,env(safe-area-inset-right,0px)) 20px max(16px,env(safe-area-inset-left,0px));z-index:30}
+.sheet{background:var(--surface);border-radius:16px;padding:18px;width:min(560px,100%);max-height:100%;overflow:auto;display:grid;gap:12px}
+.sheet.wide{width:min(760px,100%)}
+.rcpt-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.receipt{background:#FFFFFF;color:#1A1A1A;font-family:"Courier New",ui-monospace,monospace;font-size:13px;padding:16px 14px;border-radius:4px;box-shadow:0 1px 0 #ccc,0 6px 18px rgba(0,0,0,.12);line-height:1.45}
+.receipt .c{text-align:center}
+.receipt hr{border:0;border-top:1px dashed #999;margin:8px 0}
+.receipt .r{display:flex;justify-content:space-between;gap:8px}
+.receipt .big{font-size:16px;font-weight:700}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:12px 18px;border-radius:12px;z-index:40;font-weight:500;max-width:calc(100% - 32px);box-shadow:0 8px 24px rgba(0,0,0,.2)}
+
+@media (max-width:1100px){
+  .steps{grid-template-columns:1fr}
+  .strg{grid-template-columns:1fr 300px}
+  .board{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:900px){
+  html,body{height:auto}
+  .app{height:auto}
+  .screen,.pos,.strg,.pay,.stock,.dgrid{grid-template-columns:1fr;height:auto}
+  .steps{overflow:visible}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .methods{grid-template-columns:repeat(2,1fr)}
+  .entry,.rcpt-wrap{grid-template-columns:1fr}
+  .tgrid{grid-template-columns:repeat(6,1fr)}
+  .foot-actions{grid-template-columns:1fr}
+  .nav button kbd{display:none}
+  .lines,.tablewrap{max-height:none}
+  .bar{grid-template-columns:76px 1fr 80px}
+}
+@media (max-width:520px){
+  .board{grid-template-columns:1fr}
+  .datechips,.timechips{grid-template-columns:repeat(3,1fr)}
+  .prices{grid-template-columns:repeat(3,1fr)}
+}
+@media (prefers-reduced-motion:reduce){.key{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div class="brand"><b>領峰</b><span>Best Top Sport</span></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="meta"><span class="demo-tag">樣辦 · 全部假數據</span><span>員工 SA</span><span class="num" id="clock"></span></div>
+  </div>
+  <div class="guide" id="guide">
+    <strong>試走一張單：</strong>
+    <ol>
+      <li><b>1</b>收銀撳貨加入單</li>
+      <li><b>2</b>撳「＋ 穿線單」：揀線 → 磅數 → 取拍 → 客人</li>
+      <li><b>3</b>付款：揀方式、可以分拆</li>
+      <li><b>4</b>睇收據，再去「每日結算」</li>
+    </ol>
+    <button data-act="hideGuide">收埋</button>
+  </div>
+  <main id="main"></main>
+</div>
+<div id="layer"></div>
+
+<script>
+/* ---------- 假數據（唔係真客人／真貨品資料） ---------- */
+const WEEK='日一二三四五六';
+const fmt=n=>'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmt0=n=>'$'+Number(n).toLocaleString('en-US',{maximumFractionDigits:0});
+function ink(hex){const h=hex.replace('#','');const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return (0.299*r+0.587*g+0.114*b)>140?'#18201B':'#FFFFFF'}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const SUPS=['示範供應商 A','示範供應商 B','示範供應商 C'];
+const P=[];let bcSeed=4900000000100;
+function add(o){o.bc=String(bcSeed+=7);o.sup=o.sup||SUPS[P.length%3];o.cost=o.cost??Math.round(o.price*0.58);
+  o.prices=o.prices||[o.price,Math.round(o.price*0.95),Math.round(o.price*0.9),Math.round(o.price*0.82),Math.round(o.price*0.75)];
+  o.last=o.last||(['2026-10-28','2026-11-05','2026-11-12','2026-11-18'][P.length%4]);P.push(o)}
+// GRIP
+[['AC102','YONEX AC102 Super Grap 手膠（3條裝）','YONEX AC102 Super Grap x3',45,'#F7F3E3',36,12,18],
+ ['AC108','YONEX AC108 手膠（單條）','YONEX AC108 Grip',25,'#E7F0FB',22,10,9],
+ ['GR262','VICTOR GR262 手膠','VICTOR GR262 Grip',30,'#FBE3E3',4,10,7],
+ ['TOWEL','毛巾手膠','Towel Grip',30,'#EAF6E9',15,8,4],
+ ['TOURNA','Tourna Grip 原裝手膠','Tourna Grip',45,'#DDE9F8',3,6,11],
+ ['GP20','LI-NING GP20 手膠','LI-NING GP20 Grip',25,'#FFF0D9',30,10,2]
+].forEach(([s,n,e,p,c,st,mn,h])=>add({sku:'G-'+s,short:s,name:n,en:e,cat:'GRIP',price:p,color:c,stock:st,min:mn,hot:h,unit:'條'}));
+// 羽毛球
+[['AS-50','YONEX AEROSENSA 50 羽毛球','YONEX AS-50 Shuttlecock',345,'#E3F2E1',24,6,12],
+ ['AS-30','YONEX AEROSENSA 30 羽毛球','YONEX AS-30 Shuttlecock',260,'#E9EEF9',40,10,16],
+ ['AS-9','YONEX AEROSENSA 9 羽毛球','YONEX AS-9 Shuttlecock',190,'#FBF3D8',18,8,6],
+ ['MASTER1','VICTOR Master No.1 羽毛球','VICTOR Master No.1',220,'#FCE5E5',5,8,5],
+ ['RSL','RSL Classic Tourney 羽毛球','RSL Classic Tourney',180,'#E6F4F4',12,6,3]
+].forEach(([s,n,e,p,c,st,mn,h])=>add({sku:'B-'+s,short:s,name:n,en:e,cat:'BALL',price:p,color:c,stock:st,min:mn,hot:h,unit:'筒'}));
+// 羽毛球線（價錢已包穿工，每隻顏色一粒掣）
+const BSTR=[['BG65',150,[['白','#F2F2EC'],['黃','#F2E46A'],['橙','#F4B184'],['紫','#A6A1E0']]],
+ ['BG66UM',190,[['紅','#EE8888'],['藍','#8CC4F0'],['黃','#F2E46A'],['橙','#F4B184'],['白','#F2F2EC'],['桃紅','#EE8BDF'],['綠','#A8E5A8']]],
+ ['BG80',200,[['黃','#F2E46A'],['白','#F2F2EC'],['湖水藍','#A6E8E2'],['紫紅','#E07CE6']]],
+ ['BG80P',210,[['白','#F2F2EC'],['橙','#F4B184']]],
+ ['Aerobite',230,[['綠白','#6FD6A8'],['紅白','#EE8888'],['藍白','#8CC4F0']]],
+ ['Exbolt 63',220,[['黃','#F2E46A'],['白','#F2F2EC'],['粉紅','#F5B9D6'],['紅','#EE8888'],['湖水藍','#A6E8E2']]],
+ ['Exbolt 68',220,[['黃','#F2E46A'],['白','#F2F2EC'],['青綠','#B9EC78']]]];
+let si=0;BSTR.forEach(([m,p,cs])=>cs.forEach(([cn,c])=>{si++;add({sku:'S-'+m.replace(' ','')+'-'+cn,short:m,colorName:cn,name:'羽毛球線 '+m+' '+cn,en:'Badminton string '+m,cat:'BSTR',str:true,sport:'bad',price:p,color:c,stock:[14,9,2,20,6,11,3,17,8,5][si%10],min:5,hot:m==='BG66UM'||m==='BG65'?14-si%5:si%3,unit:'條'})}));
+// 網球（波 + 網球線）
+[['USOPEN','Wilson US Open 網球（3個裝）','Wilson US Open Balls x3',55,'#F4F7C8',30,10,8],
+ ['HEADTOUR','HEAD Tour 網球（4個裝）','HEAD Tour Balls x4',75,'#EEF5D2',8,10,4]
+].forEach(([s,n,e,p,c,st,mn,h])=>add({sku:'T-'+s,short:s,name:n,en:e,cat:'TEN',price:p,color:c,stock:st,min:mn,hot:h,unit:'筒'}));
+[['RPM Blast',320,'黑','#3A3D3B'],['ALU Power',380,'銀','#C8CED3'],['NXT 16',300,'天然','#EFE2C0'],['Lynx Tour',280,'黃','#F2E46A'],['X-One',340,'天然','#EFE2C0']]
+ .forEach(([m,p,cn,c],i)=>add({sku:'S-T'+i,short:m,colorName:cn,name:'網球線 '+m+' '+cn,en:'Tennis string '+m,cat:'TEN',str:true,sport:'ten',price:p,color:c,stock:[6,2,9,7,4][i],min:3,hot:i===0?6:1,unit:'套'}));
+// 雜項
+[['LAB-B','穿工（羽毛球拍）— 客人自備線','Labour: badminton (own string)',80,'#ECE7F7',null,0,5],
+ ['LAB-T','穿工（網球拍）— 客人自備線','Labour: tennis (own string)',120,'#ECE7F7',null,0,2],
+ ['LAB-S','穿工（壁球拍）','Labour: squash',100,'#ECE7F7',null,0,1],
+ ['URGENT','URGENT 加急穿線','Urgent stringing',50,'#FFD9C7',null,0,3],
+ ['PUMP','泵波','Ball pump',10,'#E8EEF1',null,0,2],
+ ['NEEDLE','波針','Inflating needle',15,'#E8EEF1',20,5,1],
+ ['DAMPER','避震器 DAMPER','Vibration damper',25,'#E8EEF1',12,5,2],
+ ['ORDER','訂購貨品（訂金）','Special order deposit',100,'#F7F1DA',null,0,0]
+].forEach(([s,n,e,p,c,st,mn,h])=>add({sku:'M-'+s,short:n.split('（')[0].split(' ')[0],name:n,en:e,cat:'MISC',price:p,color:c,stock:st,min:mn,hot:h,unit:'項',service:st===null}));
+const byS=Object.fromEntries(P.map(p=>[p.sku,p]));
+const CATS=[['hot','常用'],['GRIP','GRIP'],['BALL','羽毛球'],['BSTR','羽毛球線'],['TEN','網球'],['MISC','雜項']];
+const CATNAME={GRIP:'GRIP',BALL:'羽毛球',BSTR:'羽毛球線',TEN:'網球',MISC:'雜項'};
+
+const CUSTS=[['示範 陳生','9000 0012'],['示範 李小姐','9000 0034'],['示範 黃生','9000 0056'],['示範 張太','9000 0078'],['示範 Mr Lam','9000 0091'],['示範 何小姐','9000 0113'],['示範 周生','9000 0135']].map(([n,t])=>({name:n,tel:t}));
+
+const METHODS=[['cash','現金','Cash','#2E8B57'],['visa','Visa','Visa','#1A1F71'],['master','Master','Mastercard','#EB6F1B'],['ae','AE','Amex','#2E77BC'],['up','銀聯','UnionPay','#D7281E'],['eps','EPS','EPS','#0B8C8C'],['fps','FPS 轉數快','FPS','#4B3FA8'],['octopus','八達通','Octopus','#F08A1C'],['alipay','AlipayHK','AlipayHK','#1677FF'],['wechat','WeChat Pay','WeChat Pay','#09B83E'],['cheque','支票','Cheque','#6B7280']];
+const M=Object.fromEntries(METHODS.map(m=>[m[0],{zh:m[1],en:m[2],c:m[3]}]));
+
+const TIMES=['中午12時','下午2時','下午4時','下午6時','晚上7時','晚上8時','晚上9時','晚上10時'];
+const TIMES_EN=['12 noon','2 pm','4 pm','6 pm','7 pm','8 pm','9 pm','10 pm'];
+
+const NOW=new Date();
+const day=off=>{const d=new Date(NOW);d.setHours(0,0,0,0);d.setDate(d.getDate()+off);return d};
+const ymd=d=>String(d.getFullYear()).slice(2)+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+const dmy=d=>d.getDate()+'/'+(d.getMonth()+1);
+function dayName(d){const o=Math.round((d-day(0))/864e5);return o===0?'今日':o===1?'聽日':o===2?'後日':o===-1?'琴日':'星期'+WEEK[d.getDay()]}
+const invNo=n=>'C'+ymd(NOW)+String(n).padStart(3,'0');
+
+/* 今日已有嘅單（假） */
+const SEED_SALES=[['10:42',345,[['cash',345]],0],['11:05',190,[['octopus',190]],1],['11:31',570,[['visa',570]],2],['12:10',45,[['cash',50]],0],['12:48',440,[['fps',440]],2],
+ ['13:20',260,[['alipay',260]],0],['13:55',620,[['master',400],['cash',220]],2],['14:30',220,[['wechat',220]],1],['15:02',150,[['cash',150]],1],['15:40',780,[['visa',780]],1],
+ ['16:15',90,[['octopus',90]],0],['16:50',380,[['up',380]],1],['17:20',410,[['eps',410]],2],['17:58',305,[['cash',305]],1],['18:33',230,[['ae',230]],1]];
+const S={view:'pos',cat:'hot',q:'',qtyMul:1,cart:[],cust:null,disc:0,seq:SEED_SALES.length+1,
+  job:null,editId:null,pay:{lines:[],method:'cash',entry:''},lang:'zh',
+  sales:SEED_SALES.map(([t,tot,pays,r],i)=>({no:invNo(i+1),time:t,total:tot,pays:pays.map(([m,a])=>({m,a})),rackets:r})),
+  jobs:[],stockQ:'',stockCat:'all',lowOnly:false,stockSel:'S-BG66UM-紅',guide:true,float:2000,cashCount:'',closed:false,custQ:''};
+(function seedJobs(){const J=[['示範 陳生','9000 0012','S-BG66UM-紅','26/28',1,-1,'晚上8時','穿好',true,true],['示範 李小姐','9000 0034','S-BG80-黃','25/27',2,0,'晚上7時','穿好',true,false],
+  ['示範 Mr Lam','9000 0091','S-T0','52',1,0,'晚上9時','穿緊',true,false],['示範 何小姐','9000 0113','S-Exbolt63-粉紅','24',1,0,'晚上10時','待穿',false,false],
+  ['示範 黃生','9000 0056','S-BG65-白','27/29',3,1,'下午6時','待穿',true,false],['示範 張太','9000 0078','S-Aerobite-綠白','26',1,2,'下午4時','待穿',true,false],
+  ['示範 周生','9000 0135','S-BG66UM-藍','28/30',1,-1,'下午6時','已取',true,true]];
+  J.forEach(([n,t,sku,ten,rk,off,tm,st,nt,nd],i)=>S.jobs.push({id:'J'+i,inv:invNo(i+2),name:n,tel:t,sku,tension:ten,rackets:rk,date:day(off),time:tm,status:st,notify:nt,notified:nd,urgent:false}))})();
+S.cart.push({id:'L0',sku:'B-AS-30',qty:1,price:byS['B-AS-30'].price,kind:'item'});
+
+function newJob(sku){const p=sku&&byS[sku];const ten=p&&p.sport==='ten'?52:26;
+  return {sku:sku||null,own:null,main:ten,cross:2,rackets:1,dateOff:1,time:'晚上8時',tel:S.cust?S.cust.tel:'',name:S.cust?S.cust.name:'',notify:true,urgent:false,sport:p?p.sport:'bad'}}
+
+/* ---------- helpers ---------- */
+let lid=1;
+function addItem(sku,qty){const p=byS[sku];if(!p)return;const ex=S.cart.find(l=>l.kind==='item'&&l.sku===sku);
+  if(ex)ex.qty+=qty;else S.cart.push({id:'L'+(lid++),sku,qty,price:p.price,kind:'item'});toast('已加入：'+p.name+(qty>1?' × '+qty:''))}
+function lineName(l){if(l.kind==='string'){const j=l.job;return j.own?('穿工（自備線）'+(j.sport==='ten'?'網球拍':'羽毛球拍')):('穿線 '+byS[j.sku].short+' '+byS[j.sku].colorName)}return byS[l.sku].name}
+const CEN={白:'White',黃:'Yellow',橙:'Orange',紫:'Purple',紅:'Red',藍:'Blue',桃紅:'Magenta',綠:'Green',湖水藍:'Aqua',紫紅:'Fuchsia',綠白:'Green/White',紅白:'Red/White',藍白:'Blue/White',粉紅:'Pink',青綠:'Lime',黑:'Black',銀:'Silver',天然:'Natural'};
+function lineEn(l){if(l.kind==='string'){const j=l.job;return j.own?'Stringing labour (own string)':('Restring '+byS[j.sku].short+' '+(CEN[byS[j.sku].colorName]||''))}return byS[l.sku].en}
+const tensionTxt=j=>j.cross?j.main+'/'+(j.main+j.cross):String(j.main);
+const jobUnit=j=>j.own?(j.sport==='ten'?120:80):byS[j.sku].price;
+const lineTotal=l=>l.kind==='string'?(l.price*l.qty+(l.job.urgent?50:0)):l.price*l.qty;
+const subTotal=()=>S.cart.reduce((s,l)=>s+lineTotal(l),0);
+const discAmt=()=>Math.round(subTotal()*S.disc/100);
+const grand=()=>subTotal()-discAmt();
+const paid=()=>S.pay.lines.reduce((s,x)=>s+x.a,0);
+const remain=()=>Math.max(0,grand()-paid());
+const change=()=>Math.max(0,paid()-grand());
+const isLow=p=>p.stock!==null&&p.stock<=p.min;
+const curInv=()=>invNo(S.seq);
+function toast(t){const el=document.createElement('div');el.className='toast';el.textContent=t;document.body.appendChild(el);setTimeout(()=>el.remove(),2200)}
+
+/* ---------- views ---------- */
+const VIEWS={pos:vPOS,string:vString,pay:vPay,stock:vStock,daily:vDaily};
+const NAV=[['pos','收銀','F1'],['string','穿線單','F2'],['pay','付款','F3'],['stock','貨品／存貨','F4'],['daily','每日結算','F5']];
+
+function render(){
+  const waiting=S.jobs.filter(j=>j.status==='待穿'||j.status==='穿緊').length;
+  document.getElementById('nav').innerHTML=NAV.map(([k,t,f])=>`<button class="${S.view===k?'on':''}" data-act="go" data-v="${k}">${t}${k==='daily'&&waiting?` <span class="badge">${waiting}</span>`:''}<kbd>${f}</kbd></button>`).join('');
+  document.getElementById('guide').hidden=!S.guide;
+  document.getElementById('main').innerHTML=VIEWS[S.view]();
+  if(S.view==='pos')renderGrid();
+  if(S.view==='stock')renderStockList();
+}
+
+function vPOS(){
+  const items=S.cart.reduce((s,l)=>s+l.qty,0);
+  return `<section class="screen pos">
+  <div class="panel">
+    <div class="bill-head">
+      <div><div class="inv-no">${curInv()}</div><div class="small muted">${dmy(NOW)} ${NOW.getFullYear()} · 現金發票</div></div>
+      <button class="cust-btn ${S.cust?'has':''}" data-act="custOpen">${S.cust?`<span><b>${esc(S.cust.name)}</b><br><span class="small num">${S.cust.tel}</span></span>`:'＋ 客人（電話搵）'}</button>
+    </div>
+    <div class="lines scroll">${linesHTML()}</div>
+    <div class="bill-foot">
+      <div class="sumrow"><span class="muted">共 ${S.cart.length} 項 ${items} 件</span>
+        <span class="chips"><span class="small muted" style="align-self:center">全單折扣</span>${[0,5,10].map(d=>`<button class="chip ${S.disc===d?'on':''}" data-act="disc" data-v="${d}">${d?d+'%':'冇'}</button>`).join('')}</span></div>
+      ${S.disc?`<div class="sumrow small"><span>小計 ${fmt(subTotal())}</span><span>折扣 −${fmt(discAmt())}</span></div>`:''}
+      <div class="total"><span>應付金額</span><span class="v">${fmt(grand())}</span></div>
+      <div class="foot-actions">
+        <button class="btn big" data-act="newJob">＋ 穿線單</button>
+        <button class="btn big primary" data-act="go" data-v="pay" ${S.cart.length?'':'disabled'}>付款 →</button>
+      </div>
+    </div>
+  </div>
+  <div class="panel picker">
+    <div class="searchrow">
+      <div class="search"><input id="q" placeholder="掃條碼，或者打貨號／名（例：BG66、AS-30）" value="${esc(S.q)}" autocomplete="off"></div>
+      <div class="qtymul"><span class="muted small">下一件數量</span><div class="stepper"><button data-act="mul" data-v="-1" aria-label="減">−</button><b>${S.qtyMul}</b><button data-act="mul" data-v="1" aria-label="加">＋</button></div></div>
+    </div>
+    <div class="cats">${CATS.map(([k,t])=>`<button class="${S.cat===k&&!S.q?'on':''}" data-act="cat" data-v="${k}">${t}</button>`).join('')}</div>
+    <div class="grid scroll" id="posGrid"></div>
+  </div></section>`}
+
+function linesHTML(){
+  if(!S.cart.length)return `<div class="empty"><b>未有貨品</b>掃條碼、打字搵，或者撳右邊顏色掣加貨</div>`;
+  return S.cart.map(l=>{const p=l.kind==='item'?byS[l.sku]:null;const j=l.job;
+    const sw=l.kind==='string'?(j.own?'':`<i class="dot" style="background:${byS[j.sku].color}"></i>`):'';
+    const sub=l.kind==='string'?`<div class="sub"><span>${tensionTxt(j)} 磅</span><span>取拍 ${dayName(day(j.dateOff))} ${dmy(day(j.dateOff))} 約${j.time}</span>${j.name||j.tel?`<span>${esc(j.name)} ${esc(j.tel)}</span>`:''}${j.urgent?'<span>加急 +$50</span>':''}${j.notify?'<span>穿好會通知</span>':''}<button class="link" data-act="editJob" data-v="${l.id}">改</button></div>`:'';
+    return `<div class="line ${l.kind==='string'?'string':''}">
+      <div class="nm">${sw}${esc(lineName(l))}<div class="unit num">${fmt(l.price)} / ${l.kind==='string'?'支拍':p.unit}</div></div>
+      <div class="stepper"><button data-act="lq" data-v="${l.id}|-1" aria-label="減">−</button><b>${l.qty}</b><button data-act="lq" data-v="${l.id}|1" aria-label="加">＋</button></div>
+      <div style="display:flex;align-items:center;gap:4px"><span class="amt">${fmt(lineTotal(l))}</span><button class="icon-btn" data-act="del" data-v="${l.id}" aria-label="刪除">✕</button></div>
+      ${sub}</div>`}).join('')}
+
+function keyHTML(p,act,selected){const bg=p.color;
+  const stockTag=p.stock!==null&&isLow(p)?`<span class="tag">剩${p.stock}</span>`:'';
+  return `<button class="key sw ${selected?'sel':''}" style="background:${bg};color:${ink(bg)}" data-act="${act}" data-v="${p.sku}">${stockTag}
+    <span><span class="k1">${esc(p.short)}</span>${p.colorName?`<br><span class="k2">${p.colorName}</span>`:p.cat!=='MISC'?'':`<br><span class="k2">${esc(p.name.includes('（')?p.name.split('（')[1].replace('）',''):'')}</span>`}</span>
+    <span class="kp">${fmt0(p.price)}${p.str?' <span class="k2">連穿</span>':''}</span></button>`}
+
+function renderGrid(){const el=document.getElementById('posGrid');if(!el)return;
+  let list;const q=S.q.trim().toLowerCase();
+  if(q)list=P.filter(p=>p.bc.includes(q)||p.sku.toLowerCase().includes(q)||p.name.toLowerCase().includes(q)||p.short.toLowerCase().includes(q));
+  else if(S.cat==='hot')list=[...P].sort((a,b)=>b.hot-a.hot).slice(0,24);
+  else list=P.filter(p=>p.cat===S.cat);
+  const note=q?`<div class="grid-note">搵到 ${list.length} 樣。撳 Enter 加第一樣。</div>`:S.cat==='hot'?`<div class="grid-note">常用：按最近 30 日賣得多排前（假數據）</div>`:(S.cat==='BSTR'||S.cat==='TEN')?`<div class="grid-note">撳線 = 開穿線單，已幫你揀好呢隻線</div>`:'';
+  el.innerHTML=note+(list.length?list.map(p=>keyHTML(p,'pick')).join(''):'<div class="empty" style="grid-column:1/-1"><b>搵唔到</b>試下打貨號或者條碼</div>')}
+
+/* 穿線單 */
+function vString(){const j=S.job||(S.job=newJob());
+  const strings=P.filter(p=>p.str&&(j.sport==='ten'?p.sport==='ten':p.sport==='bad'));
+  const sel=j.sku?byS[j.sku]:null;const d=day(j.dateOff);
+  const telOk=j.tel.replace(/\D/g,'').length>=8;
+  const miss=[];if(!j.sku&&!j.own)miss.push('揀線');if(!telOk)miss.push('客人電話');
+  const unit=j.sku||j.own?jobUnit(j):0;const tot=unit*j.rackets+(j.urgent?50:0);
+  const matches=j.tel.replace(/\D/g,'').length>=3?CUSTS.filter(c=>c.tel.replace(/\D/g,'').includes(j.tel.replace(/\D/g,''))&&c.tel!==j.tel).slice(0,3):[];
+  const dates=[0,1,2,3,4,5,6,7].map(o=>{const dd=day(o);return `<button class="${j.dateOff===o?'on':''}" data-act="jDate" data-v="${o}"><span>${dayName(dd)}</span><small class="num">${dmy(dd)}（${WEEK[dd.getDay()]}）</small></button>`}).join('');
+  return `<section class="screen strg">
+  <div class="steps">
+    <div class="step ${!j.sku&&!j.own?'need':''}" style="grid-row:span 2">
+      <h3><span class="n">1</span>揀線 ${sel?`<span class="done">✓ ${sel.short} ${sel.colorName}</span>`:j.own?'<span class="done">✓ 客人自備線</span>':''}</h3>
+      <div class="chips" style="margin-bottom:10px">
+        <button class="chip ${j.sport==='bad'?'on':''}" data-act="jSport" data-v="bad">羽毛球線</button>
+        <button class="chip ${j.sport==='ten'?'on':''}" data-act="jSport" data-v="ten">網球線</button>
+        <button class="chip ${j.own?'on':''}" data-act="jOwn">客人自備線（只收穿工）</button>
+      </div>
+      <div class="grid">${strings.map(p=>keyHTML(p,'jStr',j.sku===p.sku)).join('')}</div>
+    </div>
+    <div class="step">
+      <h3><span class="n">2</span>磅數 <span class="done">✓ ${tensionTxt(j)} 磅</span></h3>
+      <div class="tension-big"><b class="num">${j.main}</b><span>磅（主線）</span>${j.cross?`<span class="muted">· 橫線 <b class="num" style="font-size:24px">${j.main+j.cross}</b></span>`:''}</div>
+      <div class="tgrid">${Array.from({length:45},(_,i)=>18+i).map(t=>{const typ=j.sport==='ten'?(t>=45&&t<=58):(t>=22&&t<=32);return `<button class="${t===j.main?'on':typ?'typ':''}" data-act="jTen" data-v="${t}">${t}</button>`}).join('')}</div>
+      <div class="subrow"><span class="small muted">橫線</span><div class="chips">${[0,1,2].map(c=>`<button class="chip ${j.cross===c?'on':''}" data-act="jCross" data-v="${c}">${c?'+'+c+' 磅':'同主線'}</button>`).join('')}</div>
+        <span class="small muted" style="margin-left:auto">拍數</span><div class="stepper"><button data-act="jRk" data-v="-1" aria-label="減">−</button><b>${j.rackets}</b><button data-act="jRk" data-v="1" aria-label="加">＋</button></div></div>
+    </div>
+    <div class="step">
+      <h3><span class="n">3</span>取拍日 + 幾點取 <span class="done">✓ ${dayName(d)} 約${j.time}</span></h3>
+      <div class="datechips">${dates}</div>
+      <div class="timechips">${TIMES.map(t=>`<button class="${j.time===t?'on':''}" data-act="jTime" data-v="${t}">${t}</button>`).join('')}</div>
+      <label class="check" style="margin-top:10px"><input type="checkbox" id="jUrgent" ${j.urgent?'checked':''}><span><b>加急 URGENT</b><br><span class="small muted">+$50，排最前</span></span></label>
+    </div>
+    <div class="step ${telOk?'':'need'}" style="grid-column:1/-1">
+      <h3><span class="n">4</span>客人 ${telOk?`<span class="done">✓ ${esc(j.tel)}</span>`:''}</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:start">
+        <div><div class="field"><label for="jTel">電話（必填）</label><input id="jTel" inputmode="tel" value="${esc(j.tel)}" placeholder="例：9000 0012" autocomplete="off"></div>
+          <div class="sug" id="jSug">${matches.map(c=>`<button data-act="jCust" data-v="${c.tel}"><span>${esc(c.name)}</span><span class="num">${c.tel}</span></button>`).join('')}</div></div>
+        <div class="field"><label for="jName">稱呼</label><input id="jName" value="${esc(j.name)}" placeholder="例：陳生" autocomplete="off"></div>
+        <label class="check"><input type="checkbox" id="jNotify" ${j.notify?'checked':''}><span><b>穿好咗通知客人</b><br><span class="small muted">穿好撳一下，自動發 WhatsApp／SMS 話佢知幾時嚟攞。客人資料只留喺舖頭部機。</span></span></label>
+      </div>
+    </div>
+  </div>
+  <aside class="panel summary scroll">
+    <h2>${S.editId?'改穿線單':'穿線單'} · <span class="num">${curInv()}</span></h2>
+    <div class="slip">
+      <div class="r"><span>線</span><b>${sel?`<i class="dot" style="background:${sel.color}"></i>${sel.short} ${sel.colorName}`:j.own?'客人自備線':'—'}</b></div>
+      <div class="r"><span>磅數</span><b class="num">${tensionTxt(j)} 磅</b></div>
+      <div class="r"><span>拍數</span><b class="num">${j.rackets} 支</b></div>
+      <div class="r"><span>取拍</span><b>${dayName(d)} ${dmy(d)}（${WEEK[d.getDay()]}）</b></div>
+      <div class="r"><span>幾點取</span><b>約${j.time}</b></div>
+      <div class="r"><span>客人</span><b>${esc(j.name)||'—'} ${esc(j.tel)}</b></div>
+      <div class="r"><span>通知</span><b>${j.notify?'穿好會通知':'唔使通知'}</b></div>
+      ${j.urgent?'<div class="r"><span>加急</span><b class="num">+$50</b></div>':''}
+      <div class="r" style="border-top:1px solid var(--line);padding-top:8px"><span>${unit?fmt(unit)+' × '+j.rackets:''}</span><b class="num" style="font-size:26px">${fmt(tot)}</b></div>
+    </div>
+    ${miss.length?`<div class="missing">仲差：${miss.join('、')}</div>`:''}
+    <button class="btn big primary" data-act="jSave" ${miss.length?'disabled':''}>${S.editId?'更新單據':'加入單據'}</button>
+    <button class="btn ghost" data-act="jCancel">取消，返收銀</button>
+  </aside></section>`}
+
+/* 付款 */
+function vPay(){
+  if(!S.cart.length)return `<section class="screen"><div class="panel"><div class="empty"><b>張單未有嘢</b>返收銀加貨先<button class="btn primary" data-act="go" data-v="pos">返收銀</button></div></div></section>`;
+  const r=remain(),c=change(),entry=S.pay.entry;
+  return `<section class="screen pay">
+  <div class="panel paybill scroll">
+    <div class="sumrow"><span class="inv-no">${curInv()}</span><span>${S.cust?esc(S.cust.name)+' '+S.cust.tel:'散客'}</span></div>
+    <div class="mini">${S.cart.map(l=>`<div class="r"><span>${esc(lineName(l))} × ${l.qty}</span><span class="num">${fmt(lineTotal(l))}</span></div>`).join('')}
+      ${S.disc?`<div class="r muted"><span>全單折扣 ${S.disc}%</span><span class="num">−${fmt(discAmt())}</span></div>`:''}</div>
+    <div class="total"><span>應付</span><span class="v" style="font-size:36px">${fmt(grand())}</span></div>
+    <h2>已收</h2>
+    ${S.pay.lines.length?S.pay.lines.map((x,i)=>`<div class="payline"><i class="dot" style="background:${M[x.m].c}"></i>${M[x.m].zh}<span class="a">${fmt(x.a)}</span><button class="icon-btn" data-act="payDel" data-v="${i}" aria-label="刪除">✕</button></div>`).join(''):'<div class="muted small">未收錢。揀付款方式，打金額，撳「加入付款」。可以分幾種方式俾。</div>'}
+    ${r>0?`<div class="owe due"><span>仲欠</span><span class="v">${fmt(r)}</span></div>`:`<div class="owe chg"><span>${c?'找續':'啱數'}</span><span class="v">${fmt(c)}</span></div>`}
+  </div>
+  <div class="panel paymain scroll">
+    <div class="methods">${METHODS.map(([k,zh])=>`<button class="${S.pay.method===k?'on':''}" data-act="payM" data-v="${k}"><i style="background:${M[k].c}"></i>${zh}</button>`).join('')}</div>
+    <div class="entry">
+      <div>
+        <div class="amtbox"><span>${M[S.pay.method].zh}</span><span class="v">${entry===''?'<span class="muted">'+fmt(r)+'</span>':'$'+esc(entry)}</span></div>
+        <div class="quick">
+          <button class="exact" data-act="payExact">剩餘全數 ${fmt(r)}</button>
+          <button data-act="payQ" data-v="100">$100</button><button data-act="payQ" data-v="500">$500</button>
+          <button data-act="payQ" data-v="1000">$1,000</button><button data-act="payQ" data-v="clear" style="font-family:var(--f-body);font-size:16px">清除</button>
+        </div>
+      </div>
+      <div class="keypad">${['7','8','9','4','5','6','1','2','3','00','0','⌫'].map(k=>`<button data-act="payK" data-v="${k}">${k}</button>`).join('')}</div>
+    </div>
+    <button class="btn big" data-act="payAdd" ${r<=0?'disabled':''}>加入付款：${M[S.pay.method].zh} ${fmt(entry===''?r:Number(entry))}</button>
+    <div class="sumrow">
+      <div class="langtog" role="group" aria-label="收據語言"><button class="${S.lang==='zh'?'on':''}" data-act="lang" data-v="zh">中文收據</button><button class="${S.lang==='en'?'on':''}" data-act="lang" data-v="en">English receipt</button></div>
+      <button class="btn ghost" data-act="go" data-v="pos">← 返收銀</button>
+    </div>
+    <button class="btn big primary" data-act="payDone" ${r>0?'disabled':''}>${r>0?'收齊錢先可以完成':'完成交易，出收據'}</button>
+  </div></section>`}
+
+function receiptHTML(sale,lang){const en=lang==='en';
+  const rows=sale.lines.map(l=>{const j=l.job;return `<div class="r"><span>${esc(en?lineEn(l):lineName(l))}</span><span></span></div><div class="r"><span>&nbsp;&nbsp;${l.qty} × ${fmt(l.price)}</span><span>${fmt(lineTotal(l))}</span></div>${j?`<div>&nbsp;&nbsp;${en?'Tension':'磅數'}: ${tensionTxt(j)} LBS</div><div>&nbsp;&nbsp;${en?'Pick up':'取拍'}: ${en?day(j.dateOff).toDateString().slice(0,10)+', ~'+TIMES_EN[TIMES.indexOf(j.time)]:dayName(day(j.dateOff))+' '+dmy(day(j.dateOff))+' 約'+j.time}</div>${j.urgent?`<div>&nbsp;&nbsp;URGENT +$50</div>`:''}`:''}`}).join('');
+  return `<div class="receipt"><div class="c big">領峰 BEST TOP SPORT</div><div class="c">${en?'(Shop address)':'（舖頭地址）'}</div><hr>
+  <div class="r"><span>${en?'No.':'單號'}</span><span>${sale.no}</span></div><div class="r"><span>${en?'Date':'日期'}</span><span>${dmy(NOW)}/${NOW.getFullYear()} ${sale.time}</span></div>
+  ${sale.cust?`<div class="r"><span>${en?'Customer':'客人'}</span><span>${esc(sale.cust.name)}</span></div>`:''}<hr>${rows}<hr>
+  ${sale.disc?`<div class="r"><span>${en?'Discount':'折扣'}</span><span>-${fmt(sale.discAmt)}</span></div>`:''}
+  <div class="r big"><span>${en?'TOTAL':'合計'}</span><span>${fmt(sale.total)}</span></div>
+  ${sale.pays.map(x=>`<div class="r"><span>${en?M[x.m].en:M[x.m].zh}</span><span>${fmt(x.a)}</span></div>`).join('')}
+  ${sale.change?`<div class="r"><span>${en?'Change':'找續'}</span><span>${fmt(sale.change)}</span></div>`:''}<hr>
+  <div class="c">${en?'Thank you! Please keep this receipt to collect your racket.':'多謝惠顧！取拍請帶備此收據。'}</div></div>`}
+
+/* 貨品／存貨 */
+function vStock(){const p=byS[S.stockSel];const lows=P.filter(isLow).length;
+  return `<section class="screen stock">
+  <div class="panel">
+    <div class="search"><input id="sq" placeholder="一個格搵晒：貨號、條碼、名" value="${esc(S.stockQ)}" autocomplete="off"></div>
+    <div class="chips">${[['all','全部'],...Object.entries(CATNAME)].map(([k,t])=>`<button class="chip ${S.stockCat===k?'on':''}" data-act="sCat" data-v="${k}">${t}</button>`).join('')}
+      <button class="chip ${S.lowOnly?'on':''}" data-act="sLow" style="margin-left:auto">只睇低存貨 <span class="pill low">${lows}</span></button></div>
+    <div class="tablewrap"><table><thead><tr><th>貨號</th><th>名稱</th><th>類別</th><th class="r">售價 A</th><th class="r">存貨</th></tr></thead><tbody id="stockList"></tbody></table></div>
+  </div>
+  <div class="panel scroll">${p?stockDetail(p):''}</div></section>`}
+function renderStockList(){const el=document.getElementById('stockList');if(!el)return;const q=S.stockQ.trim().toLowerCase();
+  const list=P.filter(p=>(S.stockCat==='all'||p.cat===S.stockCat)&&(!S.lowOnly||isLow(p))&&(!q||p.bc.includes(q)||p.sku.toLowerCase().includes(q)||p.name.toLowerCase().includes(q)));
+  el.innerHTML=list.map(p=>`<tr class="${p.sku===S.stockSel?'on':''}" data-act="sSel" data-v="${p.sku}"><td class="num small">${p.sku}</td><td><i class="dot" style="background:${p.color}"></i>${esc(p.name)}</td><td class="small muted">${CATNAME[p.cat]}</td><td class="r num">${fmt0(p.price)}</td><td class="r num">${p.stock===null?'<span class="muted small">服務</span>':isLow(p)?`<span class="pill low">${p.stock} 低</span>`:p.stock}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">搵唔到</td></tr>'}
+function stockDetail(p){const grp=['A 零售','B 會員','C 教練','D 批發','E 員工'];const max=Math.max(p.min*3,p.stock||0,1);
+  return `<div style="display:grid;gap:14px">
+  <div style="display:flex;gap:12px;align-items:center"><span style="width:52px;height:52px;border-radius:12px;background:${p.color};flex:none;border:1px solid var(--line)"></span>
+    <div style="min-width:0"><div style="font-weight:700;font-size:18px">${esc(p.name)}</div><div class="small muted">${esc(p.en)}</div></div></div>
+  ${p.stock===null?'<div class="pill okp" style="justify-self:start">服務項目，唔計存貨</div>':`
+  <div><div class="sumrow"><span><b class="num" style="font-size:40px">${p.stock}</b> ${p.unit}</span>${isLow(p)?`<span class="pill low">低過安全存量 ${p.min}，要入貨</span>`:`<span class="pill okp">存貨正常</span>`}</div>
+   <div class="stockbar"><i style="width:${Math.min(100,p.stock/max*100)}%;background:${isLow(p)?'var(--danger)':'var(--ok)'}"></i><u style="left:${p.min/max*100}%"></u></div>
+   <div class="small muted" style="margin-top:4px">黑線 = 安全存量 ${p.min} ${p.unit}</div></div>`}
+  <div><h2 style="margin-bottom:8px">價錢組</h2><div class="prices">${p.prices.map((v,i)=>`<div class="${i===0?'a':''}"><small>${grp[i]}</small><b>${v}</b></div>`).join('')}</div><div class="small muted" style="margin-top:6px">組名同舊系統 A–E 對應，可以自己改名${p.str?'；線嘅價錢已包穿工':''}</div></div>
+  <dl class="dl"><dt>貨號</dt><dd class="num">${p.sku}</dd><dt>條碼</dt><dd class="num">${p.bc}</dd><dt>類別</dt><dd>${CATNAME[p.cat]}</dd><dt>供應商</dt><dd>${p.sup}</dd><dt>成本</dt><dd class="num">${fmt(p.cost)}</dd><dt>毛利（A）</dt><dd class="num">${Math.round((1-p.cost/p.price)*100)}%</dd><dt>最近入貨</dt><dd class="num">${p.last}</dd></dl>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn" data-act="sAdj">調整存貨</button><button class="btn primary" data-act="sToCart" data-v="${p.sku}">${p.str?'開穿線單':'加入單據'}</button></div></div>`}
+
+/* 每日結算 */
+function vDaily(){const tot=S.sales.reduce((s,x)=>s+x.total,0);const n=S.sales.length;
+  const by={};METHODS.forEach(([k])=>by[k]=0);S.sales.forEach(s=>{let left=s.total;s.pays.forEach(x=>{const a=Math.min(x.a,left);by[x.m]+=a;left-=a})});
+  const max=Math.max(...Object.values(by),1);const rk=S.sales.reduce((s,x)=>s+x.rackets,0);
+  const cashIn=by.cash;const expect=S.float+cashIn;const cnt=S.cashCount===''?null:Number(S.cashCount);
+  const cols=[['待穿','未開始'],['穿緊',''],['穿好','穿好未取'],['已取','']];
+  const order=j=>(j.urgent?0:1)*1e13+j.date.getTime()+TIMES.indexOf(j.time);
+  return `<section class="screen daily">
+  <div class="kpis">
+    <div class="kpi main"><small>今日營業額 · ${dmy(NOW)}（${WEEK[NOW.getDay()]}）</small><b>${fmt(tot)}</b></div>
+    <div class="kpi"><small>單數</small><b class="num">${n}</b></div>
+    <div class="kpi"><small>平均每單</small><b>${fmt0(n?tot/n:0)}</b></div>
+    <div class="kpi"><small>今日收穿線</small><b class="num">${rk} <span style="font-size:18px">支拍</span></b></div>
+  </div>
+  <div class="dgrid">
+    <div class="panel scroll">
+      <h2>按付款方式</h2>
+      <div class="bars">${METHODS.filter(([k])=>by[k]>0).sort((a,b)=>by[b[0]]-by[a[0]]).map(([k,zh])=>`<div class="bar"><span>${zh}</span><span class="t"><i style="width:${by[k]/max*100}%;background:${M[k].c}"></i></span><span class="v">${fmt0(by[k])}</span></div>`).join('')}</div>
+      <h2 style="margin-top:6px">現金對數</h2>
+      <div class="cash">
+        <div class="r"><span>開櫃備用金</span><span class="num">${fmt(S.float)}</span></div>
+        <div class="r"><span>＋ 今日現金收入</span><span class="num">${fmt(cashIn)}</span></div>
+        <div class="r" style="font-weight:700"><span>櫃桶應該有</span><span class="num">${fmt(expect)}</span></div>
+        <div class="r"><label for="cashCount">實際點到</label><input id="cashCount" inputmode="decimal" value="${esc(S.cashCount)}" placeholder="0"></div>
+        <div class="r" id="cashDiff">${diffHTML(cnt,expect)}</div>
+      </div>
+      <button class="btn big primary" data-act="close" ${S.closed?'disabled':''}>${S.closed?'今日已結算':'完成今日結算'}</button>
+      <details><summary class="small muted" style="cursor:pointer">今日 ${n} 張單</summary><div class="mini" style="margin-top:8px">${[...S.sales].reverse().map(s=>`<div class="r"><span class="num">${s.time} · ${s.no}</span><span>${s.pays.map(x=>M[x.m].zh).join('＋')} <b class="num">${fmt(s.total)}</b></span></div>`).join('')}</div></details>
+    </div>
+    <div class="panel" style="min-height:0">
+      <div class="sumrow"><h2>穿線單進度</h2><span class="small muted">紅字 = 已過取拍時間 · 撳掣推去下一步</span></div>
+      <div class="board scroll">${cols.map(([st,sub])=>{const js=S.jobs.filter(j=>j.status===st).sort((a,b)=>order(a)-order(b));
+        return `<div class="col"><header><span>${sub||st}</span><b>${js.length}</b></header>${js.map(jobCard).join('')||'<div class="small muted" style="padding:4px">冇</div>'}</div>`}).join('')}</div>
+    </div>
+  </div></section>`}
+function diffHTML(cnt,expect){if(cnt===null)return '<span class="muted small">點完錢打入去，即刻知夾唔夾數</span>';const d=cnt-expect;
+  return d===0?'<span class="pill okp">啱數</span><span></span>':`<span class="pill ${d<0?'low':'w'}">${d<0?'少咗':'多咗'}</span><b class="num">${fmt(Math.abs(d))}</b>`}
+function jobCard(j){const p=byS[j.sku];const late=j.status!=='已取'&&(j.date<day(0)||(j.date.getTime()===day(0).getTime()&&NOW.getHours()>=[12,14,16,18,19,20,21,22][TIMES.indexOf(j.time)]));
+  const next={待穿:['開始穿','穿緊'],穿緊:['穿好','穿好'],穿好:['客人取咗','已取']}[j.status];
+  return `<div class="card" style="border-left-color:${p.color}">
+    <div class="who"><span>${esc(j.name)}</span>${j.urgent?'<span class="pill low">急</span>':''}</div>
+    <div class="s"><i class="dot" style="background:${p.color}"></i>${p.short} ${p.colorName} · ${j.tension} 磅 · ${j.rackets} 支</div>
+    <div class="${late?'late':'muted'}">取：${dayName(j.date)} ${dmy(j.date)} 約${j.time}</div>
+    <div class="muted num">${j.tel} · ${j.inv}</div>
+    ${j.status==='穿好'?`<div class="small">${j.notified?'✓ 已通知客人':j.notify?'未通知':'客人唔使通知'}</div>`:''}
+    ${next?`<div class="acts"><button data-act="jobNext" data-v="${j.id}">${next[0]}</button>${j.status==='穿好'&&!j.notified?`<button class="sec" data-act="jobNotify" data-v="${j.id}">通知客人</button>`:''}</div>`:''}
+  </div>`}
+
+/* ---------- modals ---------- */
+function modal(html,wide){document.getElementById('layer').innerHTML=`<div class="modal" data-act="closeModal" data-self="1"><div class="sheet ${wide?'wide':''}" role="dialog" aria-modal="true">${html}</div></div>`}
+function closeModal(){document.getElementById('layer').innerHTML=''}
+function custModal(){modal(`<h2>搵客人</h2><div class="field"><label for="custQ">電話或者名</label><input id="custQ" inputmode="tel" placeholder="例：9000" autocomplete="off"></div><div class="sug" id="custSug">${custSug('')}</div>
+  <div class="sumrow"><button class="btn ghost" data-act="custNone">散客（唔記客人）</button><button class="btn" data-act="closeModal">取消</button></div><p class="small muted" style="margin:0">示範客人，全部假名假電話。正式版客人資料只留喺舖頭部機。</p>`);setTimeout(()=>document.getElementById('custQ')?.focus(),30)}
+function custSug(q){q=q.replace(/\s/g,'').toLowerCase();return CUSTS.filter(c=>!q||c.tel.replace(/\s/g,'').includes(q)||c.name.toLowerCase().includes(q)).map(c=>`<button data-act="custPick" data-v="${c.tel}"><span>${esc(c.name)}</span><span class="num">${c.tel}</span></button>`).join('')||'<div class="muted small">搵唔到，可以喺穿線單直接打新客電話</div>'}
+
+/* ---------- actions ---------- */
+const A={
+  go(v){S.view=v;if(v==='string'&&!S.job)S.job=newJob();render()},
+  hideGuide(){S.guide=false;render()},
+  cat(v){S.cat=v;S.q='';render()},
+  mul(v){S.qtyMul=Math.max(1,Math.min(99,S.qtyMul+Number(v)));render()},
+  pick(sku){const p=byS[sku];if(p.str){S.editId=null;S.job=newJob(sku);S.view='string';render();toast('揀咗 '+p.short+' '+p.colorName+'，跟住揀磅數');return}
+    addItem(sku,S.qtyMul);S.qtyMul=1;render()},
+  lq(v){const [id,d]=v.split('|');const l=S.cart.find(x=>x.id===id);l.qty=Math.max(1,l.qty+Number(d));if(l.job)l.job.rackets=l.qty;render()},
+  del(id){S.cart=S.cart.filter(x=>x.id!==id);render()},
+  disc(v){S.disc=Number(v);render()},
+  newJob(){S.editId=null;S.job=newJob();S.view='string';render()},
+  editJob(id){const l=S.cart.find(x=>x.id===id);S.editId=id;S.job={...l.job};S.view='string';render()},
+  custOpen(){custModal()},
+  custPick(tel){S.cust=CUSTS.find(c=>c.tel===tel);closeModal();render()},
+  custNone(){S.cust=null;closeModal();render()},
+  closeModal(){closeModal()},
+  jSport(v){S.job.sport=v;S.job.own=null;S.job.sku=null;S.job.main=v==='ten'?52:26;render()},
+  jOwn(){S.job.own=!S.job.own;if(S.job.own)S.job.sku=null;render()},
+  jStr(sku){S.job.sku=sku;S.job.own=null;render()},
+  jTen(v){S.job.main=Number(v);render()},
+  jCross(v){S.job.cross=Number(v);render()},
+  jRk(v){S.job.rackets=Math.max(1,Math.min(9,S.job.rackets+Number(v)));render()},
+  jDate(v){S.job.dateOff=Number(v);render()},
+  jTime(v){S.job.time=v;render()},
+  jCust(tel){const c=CUSTS.find(x=>x.tel===tel);S.job.tel=c.tel;S.job.name=c.name;render()},
+  jCancel(){S.job=null;S.editId=null;S.view='pos';render()},
+  jSave(){const j={...S.job};const price=jobUnit(j);
+    if(S.editId){const l=S.cart.find(x=>x.id===S.editId);Object.assign(l,{job:j,qty:j.rackets,price})}
+    else S.cart.push({id:'L'+(lid++),kind:'string',job:j,qty:j.rackets,price});
+    if(!S.cust&&j.tel)S.cust=CUSTS.find(c=>c.tel===j.tel)||{name:j.name||'新客',tel:j.tel};
+    toast(S.editId?'穿線單已更新':'穿線單已加入：'+tensionTxt(j)+' 磅，'+dayName(day(j.dateOff))+' 約'+j.time+' 取');
+    S.job=null;S.editId=null;S.view='pos';render()},
+  payM(v){S.pay.method=v;render()},
+  payK(k){let e=S.pay.entry;if(k==='⌫')e=e.slice(0,-1);else if(e.length<7)e=(e+k).replace(/^0+(?=\d)/,'');S.pay.entry=e;render()},
+  payQ(v){S.pay.entry=v==='clear'?'':v;render()},
+  payExact(){S.pay.entry=String(remain());render()},
+  payAdd(){const r=remain();let a=S.pay.entry===''?r:Number(S.pay.entry);if(!a)return;
+    if(S.pay.method!=='cash'&&a>r){a=r;toast('非現金唔可以多收，已改做 '+fmt(r))}
+    S.pay.lines.push({m:S.pay.method,a});S.pay.entry='';if(remain()>0&&S.pay.method!=='cash')S.pay.method='cash';render()},
+  payDel(i){S.pay.lines.splice(Number(i),1);render()},
+  lang(v){S.lang=v;if(document.getElementById('rcpt'))showReceipt();else render()},
+  payDone(){const t=new Date();const sale={no:curInv(),time:String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0'),
+      total:grand(),disc:S.disc,discAmt:discAmt(),pays:S.pay.lines.map(x=>({...x})),change:change(),cust:S.cust,lines:S.cart.map(l=>({...l})),
+      rackets:S.cart.filter(l=>l.kind==='string').reduce((s,l)=>s+l.qty,0)};
+    S.sales.push(sale);
+    S.cart.forEach(l=>{if(l.kind==='item'){const p=byS[l.sku];if(p.stock!==null)p.stock=Math.max(0,p.stock-l.qty)}
+      else{const j=l.job;if(j.sku)byS[j.sku].stock=Math.max(0,byS[j.sku].stock-j.rackets);
+        S.jobs.push({id:'J'+Date.now()+Math.random(),inv:sale.no,name:j.name||'新客',tel:j.tel,sku:j.sku||'M-LAB-'+(j.sport==='ten'?'T':'B'),tension:tensionTxt(j),rackets:j.rackets,date:day(j.dateOff),time:j.time,status:'待穿',notify:j.notify,notified:false,urgent:j.urgent})}});
+    S.lastSale=sale;S.cart=[];S.cust=null;S.disc=0;S.pay={lines:[],method:'cash',entry:''};S.seq++;S.closed=false;
+    render();showReceipt()},
+  printR(){toast('樣辦：正式版會直接打印去收據機')},
+  newSale(){closeModal();S.view='pos';render()},
+  toDaily(){closeModal();S.view='daily';render()},
+  sCat(v){S.stockCat=v;render()},
+  sLow(){S.lowOnly=!S.lowOnly;render()},
+  sSel(v){S.stockSel=v;render()},
+  sAdj(){toast('樣辦：正式版喺度打實點數量，會留低邊個改、幾時改')},
+  sToCart(sku){A.pick(sku)},
+  jobNext(id){const j=S.jobs.find(x=>x.id===id);j.status={待穿:'穿緊',穿緊:'穿好',穿好:'已取'}[j.status];
+    if(j.status==='穿好'&&j.notify){j.notified=true;toast('樣辦：已通知 '+j.name+'（正式版會發 WhatsApp／SMS）')}render()},
+  jobNotify(id){const j=S.jobs.find(x=>x.id===id);j.notified=true;toast('樣辦：已通知 '+j.name);render()},
+  close(){S.closed=true;const tot=S.sales.reduce((s,x)=>s+x.total,0);render();
+    modal(`<h2>今日結算完成</h2><p style="margin:0">營業額 <b class="num">${fmt(tot)}</b>，${S.sales.length} 張單。正式版會出 F505 每日結算表（同舊系統一樣），可以打印或者存 PDF。</p><button class="btn primary" data-act="closeModal">好</button>`)}
+};
+function showReceipt(){const s=S.lastSale;
+  modal(`<div class="sumrow"><h2>交易完成 · ${s.no}</h2><div class="langtog"><button class="${S.lang==='zh'?'on':''}" data-act="lang" data-v="zh">中文</button><button class="${S.lang==='en'?'on':''}" data-act="lang" data-v="en">English</button></div></div>
+  <div class="rcpt-wrap" id="rcpt">${receiptHTML(s,S.lang)}
+    <div style="display:grid;gap:10px">${s.change?`<div class="owe chg"><span>找續</span><span class="v">${fmt(s.change)}</span></div>`:''}
+      ${s.rackets?`<div class="slip"><b>穿線單已入「每日結算 › 穿線單進度」</b><span class="small muted">${s.rackets} 支拍，狀態：未開始</span></div>`:''}
+      <button class="btn" data-act="printR">打印收據</button>
+      <button class="btn primary big" data-act="newSale">開新單</button>
+      <button class="btn ghost" data-act="toDaily">睇每日結算</button></div></div>`,true)}
+
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;
+  if(b.dataset.self&&e.target!==b)return;if(b.disabled)return;A[b.dataset.act]?.(b.dataset.v,b)});
+document.addEventListener('input',e=>{const t=e.target;
+  if(t.id==='q'){S.q=t.value;renderGrid();document.querySelectorAll('.cats button').forEach(b=>b.classList.toggle('on',!S.q&&b.dataset.v===S.cat))}
+  else if(t.id==='sq'){S.stockQ=t.value;renderStockList()}
+  else if(t.id==='jTel'){const was=S.job.tel.replace(/\D/g,'').length>=8;S.job.tel=t.value;const d=t.value.replace(/\D/g,'');const m=d.length>=3?CUSTS.filter(c=>c.tel.replace(/\D/g,'').includes(d)&&c.tel!==t.value).slice(0,3):[];
+    document.getElementById('jSug').innerHTML=m.map(c=>`<button data-act="jCust" data-v="${c.tel}"><span>${esc(c.name)}</span><span class="num">${c.tel}</span></button>`).join('');
+    if((d.length>=8)!==was){const pos=t.selectionStart;render();const n=document.getElementById('jTel');n.focus();n.setSelectionRange(pos,pos)}}
+  else if(t.id==='jName'){S.job.name=t.value}
+  else if(t.id==='custQ'){document.getElementById('custSug').innerHTML=custSug(t.value)}
+  else if(t.id==='cashCount'){S.cashCount=t.value.replace(/[^\d.]/g,'');const by=S.sales.reduce((s,x)=>{let left=x.total;x.pays.forEach(p=>{if(p.m==='cash')s+=Math.min(p.a,left);left-=Math.min(p.a,left)});return s},0);
+    document.getElementById('cashDiff').innerHTML=diffHTML(S.cashCount===''?null:Number(S.cashCount),S.float+by)}
+});
+document.addEventListener('change',e=>{const t=e.target;
+  if(t.id==='jNotify'){S.job.notify=t.checked;render()}
+  if(t.id==='jUrgent'){S.job.urgent=t.checked;render()}});
+document.addEventListener('keydown',e=>{
+  const fk={F1:'pos',F2:'string',F3:'pay',F4:'stock',F5:'daily'}[e.key];if(fk){e.preventDefault();A.go(fk);return}
+  if(e.key==='Escape')closeModal();
+  if(e.key==='Enter'&&e.target.id==='q'){const first=document.querySelector('#posGrid .key');if(first){first.click();S.q='';if(S.view==='pos'){render();document.getElementById('q').focus()}}}
+});
+function tick(){const d=new Date();document.getElementById('clock').textContent=d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+tick();setInterval(tick,30000);
+render();
+</script>
+</body>
+</html>
